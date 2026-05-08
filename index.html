@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard Orlando</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#171a21;
+    --panel-2:#1f242e;
+    --border:#262c38;
+    --text:#e6e8ee;
+    --muted:#8a93a6;
+    --accent:#6aa9ff;
+    --good:#3ddc97;
+    --bad:#ff6b6b;
+    --warn:#ffb86b;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px 28px;border-bottom:1px solid var(--border);background:#0c0e12;
+    position:sticky;top:0;z-index:10;
+  }
+  header h1{font-size:18px;margin:0;letter-spacing:.3px}
+  header .meta{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+  header button{
+    background:var(--panel-2);color:var(--text);border:1px solid var(--border);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;
+  }
+  header button:hover{background:#2a313e}
+  header button:disabled{opacity:.5;cursor:not-allowed}
+  main{padding:24px 28px;max-width:1400px;margin:0 auto}
+  .dashboard-groups{
+    display:grid;
+    grid-template-columns:minmax(280px,.85fr) minmax(0,1.65fr);
+    gap:18px;
+    align-items:stretch;
+  }
+  .metric-group{
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .metric-group::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    opacity:.55;
+  }
+  .metric-group-operations{
+    background:linear-gradient(145deg, rgba(106,169,255,.09), rgba(23,26,33,.96) 46%, rgba(23,26,33,.98));
+  }
+  .metric-group-operations::before{
+    background:radial-gradient(circle at top left, rgba(106,169,255,.12), transparent 42%);
+  }
+  .metric-group-finance{
+    background:linear-gradient(145deg, rgba(61,220,151,.08), rgba(23,26,33,.96) 46%, rgba(23,26,33,.98));
+  }
+  .metric-group-finance::before{
+    background:radial-gradient(circle at top left, rgba(61,220,151,.11), transparent 42%);
+  }
+  .group-header{
+    position:relative;
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    margin-bottom:14px;
+    padding-bottom:12px;
+    border-bottom:1px solid rgba(138,147,166,.16);
+  }
+  .group-header h2{
+    margin:0;
+    font-size:16px;
+    color:var(--text);
+    letter-spacing:.4px;
+    text-transform:none;
+  }
+  .group-eyebrow{
+    color:var(--muted);
+    font-size:11px;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .group-kpis{
+    position:relative;
+    display:grid;
+    gap:14px;
+  }
+  .group-kpis-operations{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .group-kpis-finance{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(128px,1fr));
+  }
+  .finance-projected{
+    grid-column:3;
+    grid-row:1 / span 2;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+  }
+  .finance-projected .label,
+  .finance-projected .value,
+  .finance-projected .sub{
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    width:100%;
+  }
+  .finance-projected .label{
+    margin-bottom:14px;
+  }
+  .finance-projected .sub{
+    margin-top:14px;
+  }
+  .panel{
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;
+  }
+  .metric-group .panel{
+    background:rgba(15,17,21,.58);
+    backdrop-filter:blur(6px);
+  }
+  .kpi{
+    display:flex;
+    flex-direction:column;
+    min-height:128px;
+    height:100%;
+  }
+  .kpi .label{
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.25;
+    letter-spacing:.5px;
+    text-transform:uppercase;
+    min-height:30px;
+    margin-bottom:8px;
+    display:flex;
+    align-items:flex-start;
+  }
+  .kpi .value{
+    font-size:28px;
+    font-weight:600;
+    line-height:1.1;
+    min-height:34px;
+    display:flex;
+    align-items:flex-end;
+  }
+  .kpi .sub{
+    margin-top:8px;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.35;
+    min-height:32px;
+    display:flex;
+    align-items:flex-start;
+  }
+  .group-kpis-operations .kpi.ops-primary .label{
+    min-height:auto;
+    margin-top:14px;
+    margin-bottom:4px;
+    align-items:flex-end;
+  }
+  .delta-up{color:var(--good)}
+  .delta-down{color:var(--bad)}
+  .delta-flat{color:var(--muted)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+  .row.full{grid-template-columns:1fr}
+  .panel h2{margin:0 0 14px 0;font-size:14px;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border)}
+  th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .skeleton{color:var(--muted);font-style:italic}
+  .error{
+    color:var(--bad);background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.3);
+    padding:14px 16px;border-radius:10px;margin-bottom:16px;font-size:14px;
+  }
+  @media (max-width:1100px){
+    .dashboard-groups{grid-template-columns:1fr}
+    .group-kpis-finance{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}
+    .finance-projected{grid-column:1 / -1;grid-row:auto}
+    .row{grid-template-columns:1fr}
+  }
+  @media (max-width:600px){
+    main{padding:14px}
+    header{padding:14px}
+    .metric-group{padding:14px}
+    .group-kpis-operations,.group-kpis-finance{grid-template-columns:1fr;grid-template-rows:auto}
+    .finance-projected{grid-column:auto;grid-row:auto}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Dashboard Orlando</h1>
+  <div class="meta">
+    <span id="updated">Loading…</span>
+    <button id="refreshBtn">Refresh</button>
+  </div>
+</header>
+
+<main>
+  <div id="errorBox"></div>
+
+  <section class="dashboard-groups">
+    <div class="metric-group metric-group-operations">
+      <div class="group-header">
+        <div>
+          <div class="group-eyebrow">Department</div>
+          <h2>Operations</h2>
+        </div>
+      </div>
+
+      <div class="group-kpis group-kpis-operations">
+        <div class="panel kpi ops-primary"><div class="label">Active clients</div><div class="value" id="kpiClients">—</div><div class="sub" id="kpiClientsSub"></div></div>
+        <div class="panel kpi ops-primary"><div class="label">Active diffusers</div><div class="value" id="kpiDiffusers">—</div><div class="sub" id="kpiDiffusersSub"></div></div>
+        <div class="panel kpi"><div class="label">Monthly scent consumption (mL)</div><div class="value" id="kpiAroma">—</div><div class="sub" id="kpiAromaSub"></div></div>
+        <div class="panel kpi"><div class="label">Diffusers installed this month</div><div class="value" id="kpiInstalls">—</div><div class="sub" id="kpiInstallsSub"></div></div>
+      </div>
+    </div>
+
+    <div class="metric-group metric-group-finance">
+      <div class="group-header">
+        <div>
+          <div class="group-eyebrow">Department</div>
+          <h2>Finance</h2>
+        </div>
+      </div>
+
+      <div class="group-kpis group-kpis-finance">
+        <div class="panel kpi"><div class="label">Recurring revenue (RR)</div><div class="value" id="kpiRR">—</div><div class="sub">current month</div></div>
+        <div class="panel kpi"><div class="label">Retail sales 2026 (diffuser + scent)</div><div class="value" id="kpiRetailSales">—</div><div class="sub" id="kpiRetailSalesSub"></div></div>
+        <div class="panel kpi"><div class="label">Monthly scent cost</div><div class="value" id="kpiAromaCost">—</div><div class="sub" id="kpiAromaCostSub"></div></div>
+        <div class="panel kpi"><div class="label">Payments received</div><div class="value" id="kpiPaymentsReceived">—</div><div class="sub" id="kpiPaymentsReceivedSub"></div></div>
+        <div class="panel kpi finance-projected"><div class="label">Projected Annual Revenue 2026</div><div class="value" id="kpiProjectedAnnualRevenue">—</div><div class="sub">((RR - scent cost) × 12) + retail sales</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row">
+    <div class="panel">
+      <h2>Highest Gross Rev per diffuser (monthly fee - scent cost)</h2>
+      <table>
+        <thead><tr><th>Client</th><th class="num">Gross Rev / Month</th></tr></thead>
+        <tbody id="tblGrossHigh"><tr><td colspan="2" class="skeleton">Loading…</td></tr></tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Lowest Gross Rev per diffuser (monthly fee - scent cost)</h2>
+      <table>
+        <thead><tr><th>Client</th><th class="num">Gross Rev / Month</th></tr></thead>
+        <tbody id="tblGrossLow"><tr><td colspan="2" class="skeleton">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+/* ============================================================
+   CONFIGURATION — Orlando Dashboard
+   ============================================================ */
+const CONFIG = {
+  AIRTABLE_TOKEN: "patg5Fxf1mrZNaKja.800b433048d2ece26546a90ab7c16d98cd42a71faf3ea88de41f75a64939b1a7",
+
+  // If the Orlando base uses a different Base ID, replace only this value.
+  BASE_ID: "appqzyIwi0Wb4e6eN",
+
+  TABLE_CLIENTS: "tblXOLyg4dhDw0DfJ",
+  TABLE_PROFIT: "tblmwzFlsm40Z6KX9",
+  TABLE_INSTALLS: "tblUm1TdOrPxeDMlK",
+  TABLE_PAYMENTS: "tblJOk41pqpPd2yXi",
+  TABLE_INVOICES_ELISANGELA: "tbl3COdnpqiYMAih1",
+
+  CURRENCY: "USD",
+  LOCALE: "en-US",
+  DATE_LOCALE: "en-US",
+  AUTO_REFRESH_MIN: 10
+};
+
+/* ============================================================
+   Helpers
+   ============================================================ */
+const fmtMoney = n => new Intl.NumberFormat(CONFIG.LOCALE,{style:"currency",currency:CONFIG.CURRENCY,maximumFractionDigits:0}).format(n||0);
+const fmtMoney2 = n => new Intl.NumberFormat(CONFIG.LOCALE,{style:"currency",currency:CONFIG.CURRENCY,maximumFractionDigits:2}).format(n||0);
+const fmtNum = n => new Intl.NumberFormat(CONFIG.DATE_LOCALE).format(n||0);
+const fmtDate = iso => {
+  if(!iso) return "—";
+  const d = new Date(iso+"T00:00:00");
+  return d.toLocaleDateString(CONFIG.DATE_LOCALE,{day:"2-digit",month:"short",year:"numeric"});
+};
+function escapeHtml(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+async function airtableFetchAll(tableId, params={}){
+  const safeTableId = encodeURIComponent(tableId);
+  const url = new URL(`https://api.airtable.com/v0/${CONFIG.BASE_ID}/${safeTableId}`);
+  Object.entries(params).forEach(([k,v])=>{
+    if(Array.isArray(v)) v.forEach(x=>url.searchParams.append(k,x));
+    else url.searchParams.set(k,v);
+  });
+  const records = [];
+  let offset;
+  do{
+    if(offset) url.searchParams.set("offset",offset);
+    const res = await fetch(url, { headers:{ Authorization:`Bearer ${CONFIG.AIRTABLE_TOKEN}` } });
+    if(!res.ok) throw new Error(`Airtable ${tableId}: ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    records.push(...data.records);
+    offset = data.offset;
+  } while(offset);
+  return records;
+}
+
+function parseNumberValue(value){
+  if(typeof value === "number") return value;
+
+  if(Array.isArray(value)){
+    return value.reduce((sum, item)=>sum + parseNumberValue(item), 0);
+  }
+
+  if(typeof value === "object" && value !== null){
+    for(const key of ["value", "amount", "number", "name"]){
+      if(value[key] !== undefined){
+        const parsed = parseNumberValue(value[key]);
+        if(parsed !== 0) return parsed;
+      }
+    }
+    return 0;
+  }
+
+  if(typeof value === "string"){
+    let cleaned = value.replace(/[^0-9,.-]+/g, "");
+    if(!cleaned) return 0;
+
+    const lastComma = cleaned.lastIndexOf(",");
+    const lastDot = cleaned.lastIndexOf(".");
+
+    if(lastComma > lastDot){
+      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      cleaned = cleaned.replace(/,/g, "");
+    }
+
+    const parsed = Number(cleaned);
+    if(!Number.isNaN(parsed)) return parsed;
+  }
+
+  return 0;
+}
+
+function getNumberField(fields, fieldName){
+  if(Object.prototype.hasOwnProperty.call(fields, fieldName)){
+    return parseNumberValue(fields[fieldName]);
+  }
+
+  const normalize = str => String(str || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+
+  const target = normalize(fieldName);
+  const matchedKey = Object.keys(fields).find(key => normalize(key) === target);
+  return matchedKey ? parseNumberValue(fields[matchedKey]) : 0;
+}
+
+function getTextField(fields, possibleFields){
+  for(const fieldName of possibleFields){
+    const value = fields[fieldName];
+
+    if(Array.isArray(value)){
+      const cleaned = value
+        .map(item => typeof item === "object" && item !== null ? (item.name || item.id || "") : String(item || ""))
+        .map(item => item.trim())
+        .filter(Boolean);
+      if(cleaned.length) return cleaned.join(", ").split("\n")[0];
+    }
+
+    if(typeof value === "object" && value !== null){
+      const text = String(value.name || value.id || "").trim();
+      if(text) return text.split("\n")[0];
+    }
+
+    const text = String(value || "").trim();
+    if(text) return text.split("\n")[0];
+  }
+
+  return "—";
+}
+
+function getDateField(fields){
+  const possibleFields = ["Date", "Installation Date", "Installation date", "Data", "Install Date", "Install date"];
+  for(const fieldName of possibleFields){
+    const value = fields[fieldName];
+    if(value) return String(value);
+  }
+  return "";
+}
+
+function getClientName(fields){
+  return getTextField(fields, [
+    "Client", "Name", "Client Name", "Account", "Store", "Cliente", "Company",
+    "Company Name", "Location", "Store Name", "Client / Store", "Client/Store",
+    "Client Location", "Diffuser", "Diffuser Name"
+  ]);
+}
+
+function computeKPIs({clients, profit, installs, payments, invoicesElisangela}){
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth()+1, 1);
+  const prevMonthStart = new Date(now.getFullYear(), now.getMonth()-1, 1);
+
+  // Operations
+  const totalClients = clients.length;
+  const totalDiffusers = profit.length;
+  const scentConsumption = profit.reduce((a,r)=>a+getNumberField(r.fields || {}, "Consumo mes"),0);
+
+  const installsThisMonth = installs.filter(r=>{
+    const d = getDateField(r.fields || {});
+    if(!d) return false;
+    const date = new Date(d + "T00:00:00");
+    return date >= monthStart && date < nextMonthStart;
+  });
+
+  const installsPrevMonth = installs.filter(r=>{
+    const d = getDateField(r.fields || {});
+    if(!d) return false;
+    const date = new Date(d + "T00:00:00");
+    return date >= prevMonthStart && date < monthStart;
+  });
+
+  const diffMonth = installsThisMonth.length;
+  const diffPrevMonth = installsPrevMonth.length;
+
+  // Finance
+  const recurringRevenue = profit.reduce((a,r)=>a+getNumberField(r.fields || {}, "Default monthly fee per diffuser"),0);
+  const monthlyScentCost = profit.reduce((a,r)=>a+getNumberField(r.fields || {}, "Custo aroma / mes"),0);
+  const retailSales = invoicesElisangela.reduce((a,r)=>a+getNumberField(r.fields || {}, "Gross Rev"),0);
+  const paymentsReceived = payments.reduce((a,r)=>a+getNumberField(r.fields || {}, "Amount Paid"),0);
+  const projectedAnnualRevenue = ((recurringRevenue - monthlyScentCost) * 12) + retailSales;
+
+  // Gross Rev lists — Profitability table, "Lucratividade mes por diff" column.
+  const grossRows = profit
+    .map((r, index)=>({
+      name: getClientName(r.fields || {}) || `Record ${index + 1}`,
+      gross: getNumberField(r.fields || {}, "Lucratividade mes por diff")
+    }))
+    .filter(r=>Number.isFinite(r.gross) && r.gross > 0);
+
+  const grossHigh = [...grossRows].sort((a,b)=>b.gross-a.gross).slice(0,10);
+  const grossLow  = [...grossRows].sort((a,b)=>a.gross-b.gross).slice(0,10);
+
+  return {
+    totalClients,
+    totalDiffusers,
+    scentConsumption,
+    recurringRevenue,
+    monthlyScentCost,
+    retailSales,
+    paymentsReceived,
+    projectedAnnualRevenue,
+    diffMonth,
+    diffPrevMonth,
+    grossHigh,
+    grossLow
+  };
+}
+
+function render(k){
+  document.getElementById("kpiClients").textContent = fmtNum(k.totalClients);
+  document.getElementById("kpiClientsSub").textContent = `records in Clients`;
+
+  document.getElementById("kpiDiffusers").textContent = fmtNum(k.totalDiffusers);
+  document.getElementById("kpiDiffusersSub").textContent = `records in Profitability`;
+
+  document.getElementById("kpiAroma").textContent = fmtNum(k.scentConsumption);
+  document.getElementById("kpiAromaSub").textContent = `sum of Consumo mes`;
+
+  const delta = k.diffMonth - k.diffPrevMonth;
+  const pct = k.diffPrevMonth ? (delta/k.diffPrevMonth*100) : (k.diffMonth?100:0);
+  const cls = delta>0?"delta-up":delta<0?"delta-down":"delta-flat";
+  const arrow = delta>0?"▲":delta<0?"▼":"▬";
+  document.getElementById("kpiInstalls").textContent = fmtNum(k.diffMonth);
+  document.getElementById("kpiInstallsSub").innerHTML =
+    `<span class="${cls}">${arrow} ${delta>=0?"+":""}${delta} (${pct.toFixed(0)}%)</span> vs last month (${k.diffPrevMonth})`;
+
+  document.getElementById("kpiRR").textContent = fmtMoney(k.recurringRevenue);
+  document.getElementById("kpiRetailSales").textContent = fmtMoney(k.retailSales);
+  document.getElementById("kpiRetailSalesSub").textContent = `sum of Gross Rev`;
+  document.getElementById("kpiAromaCost").textContent = fmtMoney(k.monthlyScentCost);
+  document.getElementById("kpiAromaCostSub").textContent = `sum of Custo aroma / mes`;
+  document.getElementById("kpiPaymentsReceived").textContent = fmtMoney(k.paymentsReceived);
+  document.getElementById("kpiPaymentsReceivedSub").textContent = `sum of Amount Paid`;
+  document.getElementById("kpiProjectedAnnualRevenue").textContent = fmtMoney(k.projectedAnnualRevenue);
+
+  const renderGrossRows = rows => rows.length===0
+    ? `<tr><td colspan="2" class="skeleton">No records found.</td></tr>`
+    : rows.map(c=>`
+      <tr>
+        <td>${escapeHtml(c.name)}</td>
+        <td class="num">${fmtMoney2(c.gross)}</td>
+      </tr>
+    `).join("");
+
+  document.getElementById("tblGrossHigh").innerHTML = renderGrossRows(k.grossHigh || []);
+  document.getElementById("tblGrossLow").innerHTML  = renderGrossRows(k.grossLow || []);
+
+  document.getElementById("updated").textContent = "Updated " + new Date().toLocaleTimeString(CONFIG.DATE_LOCALE);
+}
+
+async function load(){
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled = true;
+  document.getElementById("errorBox").innerHTML = "";
+  document.getElementById("updated").textContent = "Loading…";
+  try{
+    const [clients, profit, installs, payments, invoicesElisangela] = await Promise.all([
+      airtableFetchAll(CONFIG.TABLE_CLIENTS),
+      airtableFetchAll(CONFIG.TABLE_PROFIT),
+      airtableFetchAll(CONFIG.TABLE_INSTALLS),
+      airtableFetchAll(CONFIG.TABLE_PAYMENTS),
+      airtableFetchAll(CONFIG.TABLE_INVOICES_ELISANGELA)
+    ]);
+    const k = computeKPIs({clients, profit, installs, payments, invoicesElisangela});
+    render(k);
+  }catch(e){
+    console.error(e);
+    document.getElementById("errorBox").innerHTML = `<div class="error"><strong>Load error:</strong> ${escapeHtml(e.message)}</div>`;
+    document.getElementById("updated").textContent = "Update failed";
+  }finally{
+    btn.disabled = false;
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", load);
+load();
+if(CONFIG.AUTO_REFRESH_MIN>0){
+  setInterval(load, CONFIG.AUTO_REFRESH_MIN*60*1000);
+}
+</script>
+</body>
+</html>
