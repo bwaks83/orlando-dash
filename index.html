@@ -277,6 +277,7 @@ const CONFIG = {
   TABLE_PROFIT: "tblmwzFlsm40Z6KX9",
   TABLE_INSTALLS: "tblUm1TdOrPxeDMlK",
   TABLE_PAYMENTS: "tblJOk41pqpPd2yXi",
+  TABLE_CONTROLE: "tblXDkcZovbUSEOiz",
   TABLE_INVOICES_ELISANGELA: "tbl3COdnpqiYMAih1",
 
   CURRENCY: "USD",
@@ -413,7 +414,7 @@ function getClientName(fields){
   ]);
 }
 
-function computeKPIs({clients, profit, installs, payments, invoicesElisangela}){
+function computeKPIs({clients, profit, installs, payments, invoicesElisangela, controle}){
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const nextMonthStart = new Date(now.getFullYear(), now.getMonth()+1, 1);
@@ -442,7 +443,9 @@ function computeKPIs({clients, profit, installs, payments, invoicesElisangela}){
   const diffPrevMonth = installsPrevMonth.length;
 
   // Finance
-  const recurringRevenue = profit.reduce((a,r)=>a+getNumberField(r.fields || {}, "Default monthly fee per diffuser"),0);
+  // Recurring Revenue — Controle table, sum of "Mensalidade" column.
+  const controleRecords = controle || [];
+  const recurringRevenue = controleRecords.reduce((a,r)=>a+getNumberField(r.fields || {}, "Mensalidade"),0);
   const monthlyScentCost = profit.reduce((a,r)=>a+getNumberField(r.fields || {}, "Custo aroma / mes"),0);
   const retailSales = invoicesElisangela.reduce((a,r)=>a+getNumberField(r.fields || {}, "Gross Rev"),0);
   const paymentsReceived = payments.reduce((a,r)=>a+getNumberField(r.fields || {}, "Amount Paid"),0);
@@ -482,7 +485,7 @@ function render(k){
   document.getElementById("kpiDiffusers").textContent = fmtNum(k.totalDiffusers);
   document.getElementById("kpiDiffusersSub").textContent = `records in Profitability`;
 
-  document.getElementById("kpiAroma").textContent = fmtNum(k.scentConsumption);
+  document.getElementById("kpiAroma").textContent = k.scentConsumption.toLocaleString(CONFIG.DATE_LOCALE,{maximumFractionDigits:0});
   document.getElementById("kpiAromaSub").textContent = `sum of Consumo mes`;
 
   const delta = k.diffMonth - k.diffPrevMonth;
@@ -523,14 +526,15 @@ async function load(){
   document.getElementById("errorBox").innerHTML = "";
   document.getElementById("updated").textContent = "Loading…";
   try{
-    const [clients, profit, installs, payments, invoicesElisangela] = await Promise.all([
+    const [clients, profit, installs, payments, invoicesElisangela, controle] = await Promise.all([
       airtableFetchAll(CONFIG.TABLE_CLIENTS),
       airtableFetchAll(CONFIG.TABLE_PROFIT),
       airtableFetchAll(CONFIG.TABLE_INSTALLS),
       airtableFetchAll(CONFIG.TABLE_PAYMENTS),
-      airtableFetchAll(CONFIG.TABLE_INVOICES_ELISANGELA)
+      airtableFetchAll(CONFIG.TABLE_INVOICES_ELISANGELA),
+      airtableFetchAll(CONFIG.TABLE_CONTROLE)
     ]);
-    const k = computeKPIs({clients, profit, installs, payments, invoicesElisangela});
+    const k = computeKPIs({clients, profit, installs, payments, invoicesElisangela, controle});
     render(k);
   }catch(e){
     console.error(e);
